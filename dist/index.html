@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Línea de Tiempo: lic. en Deerecho</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #030d12;
+      --surface: #071820;
+      --surface2: #0c2233;
+      --teal: #00c9b1;
+      --teal-dim: #00876e;
+      --cyan: #5ef0e8;
+      --text: #e8f4f2;
+      --muted: #6a9aaa;
+      --border: #0f3040;
+      --glow: rgba(0,201,177,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 20%, rgba(0,120,100,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 80%, rgba(0,80,120,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating particles */
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--teal);
+      opacity: 0;
+      animation: float linear infinite;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+      10%  { opacity: 0.4; }
+      90%  { opacity: 0.2; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    /* Header */
+    header {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 70px 20px 50px;
+    }
+
+    .label {
+      font-size: 10px;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 16px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.3s;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      font-weight: 400;
+      line-height: 1.1;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 0.5s;
+    }
+
+    h1 span {
+      font-style: italic;
+      color: var(--cyan);
+    }
+
+    .subtitle {
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.7s;
+    }
+
+    /* Nav pills */
+    .nav-pills {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 36px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.9s;
+    }
+
+    .pill {
+      padding: 7px 18px;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: transparent;
+    }
+
+    .pill:hover, .pill.active {
+      border-color: var(--teal);
+      color: var(--teal);
+      background: rgba(0,201,177,0.07);
+      box-shadow: 0 0 16px rgba(0,201,177,0.15);
+    }
+
+    /* Timeline wrapper */
+    .timeline-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 24px 100px;
+    }
+
+    /* Vertical line */
+    .vline {
+      position: absolute;
+      left: 50%;
+      top: 0; bottom: 0;
+      width: 1px;
+      transform: translateX(-50%);
+      background: linear-gradient(to bottom, transparent, var(--teal-dim) 8%, var(--teal-dim) 92%, transparent);
+      opacity: 0.3;
+    }
+
+    /* Event row */
+    .event {
+      display: grid;
+      grid-template-columns: 1fr 40px 1fr;
+      gap: 0;
+      margin-bottom: 56px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .event.visible { opacity: 1; transform: translateY(0); }
+
+    /* Even events: content on left */
+    .event:nth-child(even) .event-content { grid-column: 1; grid-row: 1; text-align: right; padding-right: 36px; }
+    .event:nth-child(even) .event-node  { grid-column: 2; grid-row: 1; }
+    .event:nth-child(even) .event-meta  { grid-column: 3; grid-row: 1; padding-left: 36px; padding-top: 8px; }
+
+    /* Odd events: content on right */
+    .event:nth-child(odd) .event-meta    { grid-column: 1; grid-row: 1; text-align: right; padding-right: 36px; padding-top: 8px; }
+    .event:nth-child(odd) .event-node   { grid-column: 2; grid-row: 1; }
+    .event:nth-child(odd) .event-content { grid-column: 3; grid-row: 1; padding-left: 36px; }
+
+    .event-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px;
+      gap: 6px;
+    }
+
+    .dot-outer {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid var(--teal);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 0 0 rgba(0,201,177,0);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .dot-inner {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--teal);
+      transition: all 0.3s ease;
+    }
+
+    .event:hover .dot-outer,
+    .event.expanded .dot-outer {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 6px rgba(0,201,177,0.12), 0 0 20px rgba(0,201,177,0.3);
+      transform: scale(1.2);
+    }
+
+    .event:hover .dot-inner,
+    .event.expanded .dot-inner {
+      background: var(--cyan);
+      transform: scale(1.3);
+    }
+
+    /* Meta (date/era) */
+    .event-meta {}
+
+    .era-badge {
+      display: inline-block;
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--teal);
+      background: rgba(0,201,177,0.08);
+      border: 1px solid rgba(0,201,177,0.2);
+      padding: 3px 9px;
+      border-radius: 2px;
+      margin-bottom: 6px;
+    }
+
+    .era-date {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      color: var(--cyan);
+      font-weight: 400;
+      line-height: 1;
+    }
+
+    /* Content card */
+    .event-content {}
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px 22px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .event:hover .card,
+    .event.expanded .card {
+      border-color: rgba(0,201,177,0.3);
+      box-shadow: 0 8px 40px rgba(0,201,177,0.08);
+    }
+
+    .event.expanded .card::after { opacity: 1; }
+
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      font-weight: 400;
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .card-preview {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .card-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      transition: gap 0.3s;
+    }
+
+    .event:hover .card-toggle { gap: 10px; }
+
+    .arrow {
+      display: inline-block;
+      transition: transform 0.3s;
+    }
+
+    .event.expanded .arrow { transform: rotate(90deg); }
+
+    /* Expanded detail */
+    .card-detail {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.5s ease, padding 0.3s;
+    }
+
+    .event.expanded .card-detail {
+      max-height: 600px;
+    }
+
+    .detail-inner {
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+      padding-top: 16px;
+    }
+
+    .detail-inner p {
+      font-size: 13.5px;
+      line-height: 1.8;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .detail-inner p:last-child { margin-bottom: 0; }
+
+    .highlight-box {
+      background: rgba(0,201,177,0.05);
+      border-left: 2px solid var(--teal);
+      padding: 12px 16px;
+      border-radius: 0 4px 4px 0;
+      margin-top: 12px;
+    }
+
+    .highlight-box p {
+      font-size: 12.5px;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
+
+    .tag {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* Footer ornament */
+    .footer-orn {
+      text-align: center;
+      padding-bottom: 60px;
+      position: relative;
+      z-index: 1;
+      opacity: 0;
+      animation: fadeUp 1s ease forwards 2s;
+    }
+
+    .orn-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .orn-line {
+      width: 70px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal-dim));
+    }
+
+    .orn-line.r { background: linear-gradient(270deg, transparent, var(--teal-dim)); }
+
+    .orn-hex {
+      width: 8px; height: 8px;
+      background: var(--teal);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .vline { left: 22px; }
+      .event {
+        grid-template-columns: 44px 1fr;
+        grid-template-rows: auto auto;
+      }
+      .event:nth-child(even) .event-content,
+      .event:nth-child(odd) .event-content {
+        grid-column: 2; grid-row: 2;
+        text-align: left; padding-left: 0; padding-right: 0;
+      }
+      .event:nth-child(even) .event-node,
+      .event:nth-child(odd) .event-node {
+        grid-column: 1; grid-row: 1 / 3;
+        justify-content: flex-start; padding-top: 10px;
+      }
+      .event:nth-child(even) .event-meta,
+      .event:nth-child(odd) .event-meta {
+        grid-column: 2; grid-row: 1;
+        text-align: left; padding-left: 0; padding-right: 0;
+        margin-bottom: 10px;
+      }
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<header>
+  <p class="label">Subtanciacion del Juicio de Amparo</p>
+  <h1>Una <span>Historia</span><br>del Proceso</h1>
+  <p class="subtitle">Licenciatura en Derecho Grupo: 701</p>
+
+  <div class="nav-pills">
+    <button class="pill active" onclick="filterAll()">Todos</button>
+    <button class="pill" onclick="filterBy('ciencia')">Audiencia Inicial</button>
+    <button class="pill" onclick="filterBy('biologia')">Audiencia Incidental</button>
+    <button class="pill" onclick="filterBy('ambiente')">Audiencia Inicial</button>
+  </div>
+</header>
+
+<div class="timeline-wrap">
+  <div class="vline"></div>
+
+  <!-- 1. Hipótesis vs Teoría -->
+  <div class="event visible" data-tag="ciencia">
+    <div class="event-meta">
+      <div class="era-badge">Expediente inicial</div>
+      <div class="era-date">Paso 1</div>
+    </div>
+    <div class="event-node">
+      <div class="dot-outer" onclick="toggleEvent(this)"><div class="dot-inner"></div></div>
+    </div>
+    <div class="event-content">
+      <div class="card" onclick="toggleEvent(this.parentElement.previousElementSibling.querySelector('.dot-outer'))">
+        <div class="card-title">Sin informacion</div>
+        <p class="card-preview">Sin informacion.</p>
+        <span class="card-toggle">Explorar <span class="arrow">→</span></span>
+        <div class="card-detail">
+          <div class="detail-inner">
+            <p>Sin informacion</p>
+            <div class="highlight-box">
+              <p>📂 Sin informacion</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Macromoléculas -->
+  <div class="event visible" data-tag="biologia">
+    <div class="event-content">
+      <div class="card" onclick="toggleEvent(this.parentElement.nextElementSibling.querySelector('.dot-outer'))">
+        <div class="card-title">Apertura del expediente incidental</div>
+        <p class="card-preview">Se abre incidente de suspencion del acto reclamado.</p>
+        <span class="card-toggle">Explorar <span class="arrow">→</span></span>
+        <div class="card-detail">
+          <div class="detail-inner">
+            <p>La apertura del incidente de suspensión es el acto procesal mediante el cual el Juzgado de Distrito crea un expediente separado del expediente principal del juicio de amparo, con la finalidad de estudiar y resolver si debe suspenderse temporalmente el acto reclamado.</p>
+           
+            <div class="highlight-box">
+              <p>📂 Su objetivo principal es evitar que el acto de autoridad continúe ejecutándose y ocasione daños al quejoso mientras se resuelve el juicio de amparo.</p>
+            </div>
+       
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="event-node">
+      <div class="dot-outer" onclick="toggleEvent(this)"><div class="dot-inner"></div></div>
+    </div>
+    <div class="event-meta">
+      <div class="era-badge">Expediente Incidental</div>
+      <div class="era-date">Paso 2</div>
+    </div>
+  </div>
+
+  <!-- 3. Membranas -->
+  <div class="event visible" data-tag="biologia">
+    <div class="event-meta">
+
+      <div class="era-date">Paso 3</div>
+    </div>
+    <div class="event-node">
+      <div class="dot-outer" onclick="toggleEvent(this)"><div class="dot-inner"></div></div>
+    </div>
+    <div class="event-content">
+      <div class="card" onclick="toggleEvent(this.parentElement.previousElementSibling.querySelector('.dot-outer'))">
+        <div class="card-title">Suspensión provisional del acto reclamado</div>
+        <p class="card-preview">El juez decide si concede o niega provisionalmente la suspensión del acto reclamado. Si la concede, establece sus efectos y condiciones.</p>
+        <span class="card-toggle">Explorar <span class="arrow">→</span></span>
+        <div class="card-detail">
+          <div class="detail-inner">
+            <p>El juez de distrito solocita a la autoridad responsable el informe previo y califica de legal o ilegal el acto reclamado, en caso de legal no se emite la suspencion del acto, caso contrario se supendera el acto reclamado.</p>
+            <div class="highlight-box">
+              <p>🚨 Es una medida temporal que dicta el juez para evitar que el acto reclamado se ejecute o continúe produciendo consecuencias mientras se celebra la audiencia incidental y se decide sobre la suspensión definitiva.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Teoría Endosimbiótica -->
+  <div class="event visible" data-tag="biologia">
+    <div class="event-content">
+      <div class="card" onclick="toggleEvent(this.parentElement.nextElementSibling.querySelector('.dot-outer'))">
+        <div class="card-title">Señalamiento de audiencia incidental</div>
+        <p class="card-preview">Se fija fecha y hora para celebrar la audiencia incidental, que debe efectuarse dentro de los cinco días siguientes.</p>
+        <span class="card-toggle">Explorar <span class="arrow">→</span></span>
+        <div class="card-detail">
+          <div class="detail-inner">
+            <p>Una vez que se dicta el auto inicial, el juez establece la fecha y hora en que se llevará a cabo la audiencia incidental.</p>
+            <div class="highlight-box">
+              <p>📄 Esta audiencia sirve para revisar los informes de las autoridades, analizar las pruebas y escuchar los argumentos de las partes antes de decidir si procede la suspensión definitiva.
+
+La audiencia debe celebrarse dentro del plazo de cinco días..</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="event-node">
+      <div class="dot-outer" onclick="toggleEvent(this)"><div class="dot-inner"></div></div>
+    </div>
+    <div class="event-meta">
+      <div class="era-date">Paso 4</div>
+    </div>
+  </div>
+
+  <!-- 5. Cambio Climático en Córdoba -->
+  <div class="event visible" data-tag="ambiente">
+    <div class="event-meta">
+      <div class="era-badge">Expediente Inicial</div>
+      <div class="era-date">Paso 5</div>
+    </div>
+    <div class="event-node">
+      <div class="dot-outer" onclick="toggleEvent(this)"><div class="dot-inner"></div></div>
+    </div>
+    <div class="event-content">
+      <div class="card" onclick="toggleEvent(this.parentElement.previousElementSibling.querySelector('.dot-outer'))">
+        <div class="card-title">Expediente Inicial</div>
+        <p class="card-preview">Sin informacion.</p>
+        <span class="card-toggle">Explorar <span class="arrow">→</span></span>
+        <div class="card-detail">
+          <div class="detail-inner">
+            <p>Sin informacion.</p>
+            <div class="highlight-box">
+              <p>🌿 Sin informacion.</p>
+            </div>
+            <div class="tags">
+              <span class="tag">Córdoba</span>
+              <span class="tag">Río Sinú</span>
+              <span class="tag">Ecosistemas</span>
+              <span class="tag">Microbioma</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-orn">
+  <div class="orn-row">
+    <div class="orn-line"></div>
+    <div class="orn-hex"></div>
+    <div class="orn-line r"></div>
+  </div>
+  <p style="margin-top:14px;font-size:11px;color:var(--muted);letter-spacing:0.1em;">Amparo · Grupo 701 · Licenciatura en Derecho</p>
+<p style="margin-top:14px;font-size:11px;color:var(--muted);letter-spacing:0.1em;">Si el Derecho fuera facil se llamaria Pedagogia</p>
+
+
+</div>
+
+<script>
+  // Particles
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      animation-duration:${12+Math.random()*18}s;
+      animation-delay:${Math.random()*12}s;
+      opacity:0;
+    `;
+    container.appendChild(p);
+  }
+
+  // Toggle event expansion
+  function toggleEvent(dotOuter) {
+    const event = dotOuter.closest('.event');
+    const wasExpanded = event.classList.contains('expanded');
+    // Close all
+    document.querySelectorAll('.event.expanded').forEach(e => e.classList.remove('expanded'));
+    if (!wasExpanded) event.classList.add('expanded');
+  }
+
+  // Filter pills
+  function filterAll() {
+    document.querySelectorAll('.event').forEach(e => {
+      e.style.display = 'grid';
+      setTimeout(() => e.classList.add('visible'), 10);
+    });
+    setActivePill(0);
+  }
+
+  function filterBy(tag) {
+    document.querySelectorAll('.event').forEach(e => {
+      if (e.dataset.tag === tag) {
+        e.style.display = 'grid';
+        setTimeout(() => e.classList.add('visible'), 10);
+      } else {
+        e.classList.remove('visible');
+        setTimeout(() => e.style.display = 'none', 400);
+      }
+    });
+    const idx = ['ciencia','biologia','ambiente'].indexOf(tag) + 1;
+    setActivePill(idx);
+  }
+
+  function setActivePill(idx) {
+    document.querySelectorAll('.pill').forEach((p,i) => p.classList.toggle('active', i === idx));
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.event').forEach(e => observer.observe(e));
+</script>
+</body>
+</html>
